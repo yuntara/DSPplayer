@@ -7,7 +7,7 @@ Android music player using dsp
 
 ## Licence
 
-[MIT](https://github.com/yuntara/DSPplayer/blob/master/LICENSE)
+[MIT](https://github.com/yuntara/DSPplayer/blob/master/LICENSE.txt)
 
 ## Author
 
