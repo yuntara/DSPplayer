@@ -1,7 +1,10 @@
 package net.yuntara.dspplayer;
 
 import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v4.content.PermissionChecker;
 import android.os.Bundle;
 import android.widget.TextView;
 import java.util.ArrayList;
@@ -9,14 +12,18 @@ import java.util.Collections;
 import java.util.Comparator;
 import android.net.Uri;
 import android.content.ContentResolver;
+import android.content.DialogInterface;
 import android.database.Cursor;
 import android.widget.ListView;
+import android.Manifest;
+import android.content.pm.PackageManager;
 
 public class MainActivity extends AppCompatActivity {
 
     private ArrayList<Song> songList;
     private ListView songView;
     private TextView tv;
+    private int REQUEST_CODE_STORAGE_PERMISSION = 0x01;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -26,22 +33,80 @@ public class MainActivity extends AppCompatActivity {
         tv = (TextView) findViewById(R.id.sample_text);
         tv.setText(stringFromJNI());
 
+
         songView = (ListView)findViewById(R.id.song_list);
         songList = new ArrayList<Song>();
+        checkPermissons();
 
-        getSongList();
+        //getSongList();
 
-        Collections.sort(songList, new Comparator<Song>(){
-            public int compare(Song a, Song b){
-                return a.getTitle().compareTo(b.getTitle());
-            }
-        });
+
 
         SongAdapter songAdt = new SongAdapter(this, songList);
         songView.setAdapter(songAdt);
 
     }
+    private void checkPermissons(){
+        if (PermissionChecker.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) !=
+                PackageManager.PERMISSION_GRANTED) {
+            // 以前に許諾して、今後表示しないとしていた場合は、ここにはこない
+            String[] permissions = new String[] {
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+            };
+            ActivityCompat.requestPermissions(this, permissions, REQUEST_CODE_STORAGE_PERMISSION);
+        } else {
+            //  許諾されているので、やりたいことをする
+            getSongList();
+        }
 
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+
+        if (requestCode == REQUEST_CODE_STORAGE_PERMISSION) {
+            if (grantResults.length != 1 ||
+                    grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+               //拒否
+
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this,
+                        Manifest.permission.READ_EXTERNAL_STORAGE)) {
+
+                    new AlertDialog.Builder(this)
+                            .setTitle("パーミッション取得エラー")
+                            .setMessage("再試行する場合は、再度Requestボタンを押してください")
+                            .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    // サンプルのため、今回はもう一度操作をはさんでいますが
+
+                                }
+                            })
+                            .create()
+                            .show();
+
+                } else {
+
+                    new AlertDialog.Builder(this)
+                            .setTitle("パーミッション取得エラー")
+                            .setMessage("今後は許可しないが選択されました。アプリ設定＞権限をチェックしてください（権限をON/OFFすることで状態はリセットされます）")
+                            .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialogInterface, int i) {
+                                    //openSettings();
+                                }
+                            })
+                            .create()
+                            .show();
+                }
+            } else {
+                //許可
+                getSongList();
+            }
+        } else {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
     public void getSongList() {
         //retrieve song info
         ContentResolver musicResolver = getContentResolver();
@@ -71,7 +136,11 @@ public class MainActivity extends AppCompatActivity {
             musicCursor.close();
         }
 
-
+        Collections.sort(songList, new Comparator<Song>(){
+            public int compare(Song a, Song b){
+                return a.getTitle().compareTo(b.getTitle());
+            }
+        });
     }
 
     /**
