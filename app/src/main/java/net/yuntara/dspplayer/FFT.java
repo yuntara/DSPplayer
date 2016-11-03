@@ -42,8 +42,8 @@ public class FFT {
 
         for (int i = 1; i < n / 2; i++) {
            // array[size - i] = conj(array[i]);
-            x[n-i] = x[n];
-            y[n-i] = -y[n];
+            x[n-i] = x[i];
+            y[n-i] = -y[i];
         }
     }
     public void fft(double[] x, double[] y,boolean isReverse) {

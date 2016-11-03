@@ -75,7 +75,7 @@ public class StreamPlayer {
 
     }
     public StreamPlayer(){
-        //fft = new FFT(SIZEX*2);
+        fft = new FFT(SIZEX*2);
     }
     public void loadFilter(Context context){
         ///*
@@ -101,7 +101,7 @@ public class StreamPlayer {
         x = new double[SIZEX*2];
         y = new double[SIZEX*2];
 
-        final int id = context.getResources().getIdentifier("bnnn.dat", "raw", context.getPackageName());
+        final int id = context.getResources().getIdentifier("bnnn", "raw", context.getPackageName());
         if (id == 0) {    //エラーにはならない
             return;
             // throw new Exception("aa");
@@ -141,6 +141,7 @@ public class StreamPlayer {
         //csize = (datalength) * (2channel)
         //畳みこみできるサイズになるまでキャッシュする
         double b_r,b_i;
+        double buf;
         Boolean process = false;
         int samples = csize/2;
         for (int i = 0; i < samples; i++) {
@@ -186,14 +187,18 @@ public class StreamPlayer {
                 y[j] = 0;
             }
         }
+
         fft.fft(x,y,false);
+
         for (int j = 0; j < SIZEX + 1; j++) {
             c_r[j] = x[j];
             c_i[j] = y[j];
+            buf = x[j];
             x[j] = (x[j] * filR2_r[j]) - (y[j] * filR2_i[j]);
-            y[j] = (x[j] * filR2_i[j]) + (y[j] * filR2_r[j]);
+            y[j] = (buf * filR2_i[j]) + (y[j] * filR2_r[j]);
 
         }
+
         fft.adjust(x,y);
 
         for (int j = 0; j < SIZEX + 1; j++) {
@@ -208,10 +213,13 @@ public class StreamPlayer {
                 y[SIZEX*2-j] += b_r;
             }
         }
+
+
         fft.ifft(x,y);
+
         for (int j = 0; j < SIZEX; j++) {
-            datachunk[2*j] = (short)x[j];
-            datachunk[2*j+1] = (short)y[j];
+            datachunk[2*j] = (short)(x[j]*1000);
+            datachunk[2*j+1] = (short)(y[j]*1000);
         }
 
        audioTrack.write(datachunk,0,2*SIZEX);
