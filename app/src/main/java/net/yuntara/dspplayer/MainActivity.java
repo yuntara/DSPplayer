@@ -7,6 +7,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v4.content.PermissionChecker;
 import android.os.Bundle;
 import android.widget.TextView;
+
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -17,12 +19,24 @@ import android.database.Cursor;
 import android.widget.ListView;
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.os.IBinder;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.view.MenuItem;
+import android.view.View;
+import net.yuntara.dspplayer.MusicService.MusicBinder;
 
 public class MainActivity extends AppCompatActivity {
 
     private ArrayList<Song> songList;
     private ListView songView;
     private TextView tv;
+    private MusicService musicSrv;
+    private Intent playIntent;
+    private boolean musicBound=false;
+
     private int REQUEST_CODE_STORAGE_PERMISSION = 0x01;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,12 +54,53 @@ public class MainActivity extends AppCompatActivity {
 
         //getSongList();
 
-
+        //ByteBuffer bf = new ByteBuffer();
 
         SongAdapter songAdt = new SongAdapter(this, songList);
         songView.setAdapter(songAdt);
 
     }
+    private ServiceConnection musicConnection = new ServiceConnection(){
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicBinder binder = (MusicBinder)service;
+            //get service
+            musicSrv = binder.getService();
+            //pass list
+            musicSrv.setList(songList);
+            musicSrv.loadFilter(MainActivity.this);
+            musicBound = true;
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            musicBound = false;
+        }
+    };
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (playIntent == null) {
+            playIntent = new Intent(this, MusicService.class);
+            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+            startService(playIntent);
+        }
+    }
+
+    public void songPicked(View view){
+        tv.setText(view.getTag().toString());
+        musicSrv.setSong(Integer.parseInt(view.getTag().toString()));
+        musicSrv.playSong();
+    }
+    @Override
+    protected void onDestroy() {
+        stopService(playIntent);
+        musicSrv=null;
+        super.onDestroy();
+    }
+
     private void checkPermissons(){
         if (PermissionChecker.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) !=
                 PackageManager.PERMISSION_GRANTED) {
@@ -107,6 +162,8 @@ public class MainActivity extends AppCompatActivity {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
+
+
     public void getSongList() {
         //retrieve song info
         ContentResolver musicResolver = getContentResolver();
