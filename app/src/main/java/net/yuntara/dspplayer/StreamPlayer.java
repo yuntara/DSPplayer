@@ -5,6 +5,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -18,6 +19,7 @@ import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.media.session.PlaybackStateCompat;
+
 import android.util.Log;
 import android.content.Context;
 import android.net.Uri;
@@ -39,16 +41,9 @@ public class StreamPlayer {
     protected int lastInputBufIndex;
     private final int SIZEX = 65536;
     private Context mainContext;
-    private double filR1_r[];
-    private double filR2_r[];
-    private double filL1_r[];
-    private double filL2_r[];
-    private double filR1_i[];
-    private double filR2_i[];
-    private double filL1_i[];
-    private double filL2_i[];
+
     private short datachunk[];
-    private FFT fft;
+    //private FFT fft;
     double x[],y[];
     double c_r[];
     double c_i[];
@@ -69,16 +64,27 @@ public class StreamPlayer {
     };
     private State mState = State.Retrieving;
     private String LOG_TAG = "StreamPlayer";
+
+
     public void setDataSource(Context context,Uri uri){
         songContext = context;
         songUri = uri;
 
     }
     public StreamPlayer(){
-        fft = new FFT(SIZEX*2);
+        //fft = new FFT(SIZEX*2);
+        cfftinit(SIZEX*2);
     }
     public void loadFilter(Context context){
         ///*
+        double filR1_r[];
+        double filR2_r[];
+        double filL1_r[];
+        double filL2_r[];
+        double filR1_i[];
+        double filR2_i[];
+        double filL1_i[];
+        double filL2_i[];
         filR1_r = new double[SIZEX+1];
         filR1_i = new double[SIZEX+1];
         filR2_r = new double[SIZEX+1];
@@ -101,7 +107,7 @@ public class StreamPlayer {
         x = new double[SIZEX*2];
         y = new double[SIZEX*2];
 
-        final int id = context.getResources().getIdentifier("bnnn", "raw", context.getPackageName());
+        final int id = context.getResources().getIdentifier("out", "raw", context.getPackageName());
         if (id == 0) {    //エラーにはならない
             return;
             // throw new Exception("aa");
@@ -128,6 +134,7 @@ public class StreamPlayer {
                 filL2_r[i] = ds.readDouble();
                 filL2_i[i] = ds.readDouble();
             }
+            csetfil(filR1_r,filR1_i,filR2_r,filR2_i,filL1_r,filL1_i,filL2_r,filL2_i);
         }catch(IOException e){
             return;
         }
@@ -166,63 +173,53 @@ public class StreamPlayer {
         }
 
         audio_pos = samples - audio_pos - 1;
-        for (int j = 0; j < SIZEX; j++) {
-            before_dataL2[j] = before_dataL[j];
-            before_dataR2[j] = before_dataR[j];
-        }
-        for (int j = 0; j < SIZEX; j++) {
+        System.arraycopy(before_dataL, 0, before_dataL2, 0, SIZEX);
+        System.arraycopy(before_dataR, 0, before_dataR2, 0, SIZEX);
+        System.arraycopy(audio_dataL, 0, before_dataL, 0, SIZEX);
+        System.arraycopy(audio_dataR, 0, before_dataR, 0, SIZEX);
 
-            before_dataL[j] = audio_dataL[j];
-            before_dataR[j] = audio_dataR[j];
-
-        }
+        Arrays.fill(y,0.0);
 
         for (int j = 0; j < SIZEX * 2; j++) {
             if (j<SIZEX) {
                 x[j] = before_dataL2[j];
-                y[j] = 0;
+
             }
             else {
                 x[j] = audio_dataL[(j - SIZEX)];//
-                y[j] = 0;
+
             }
         }
-
-        fft.fft(x,y,false);
-
-        for (int j = 0; j < SIZEX + 1; j++) {
-            c_r[j] = x[j];
-            c_i[j] = y[j];
-            buf = x[j];
-            x[j] = (x[j] * filR2_r[j]) - (y[j] * filR2_i[j]);
-            y[j] = (buf * filR2_i[j]) + (y[j] * filR2_r[j]);
-
-        }
-
-        fft.adjust(x,y);
-
-        for (int j = 0; j < SIZEX + 1; j++) {
-
-            b_r = (c_r[j] * filR1_r[j]) - (c_i[j] * filR1_i[j]);
-            b_i = (c_r[j] * filR1_i[j]) + (c_i[j] * filR1_r[j]);
-
-            x[j] = x[j] - b_i;
-            y[j] = y[j] + b_r;
-            if (j > 0 && j < SIZEX) {
-                x[SIZEX*2-j] += b_i;
-                y[SIZEX*2-j] += b_r;
-            }
-        }
-
-
-        fft.ifft(x,y);
+        ccomboluteR(x,y);
 
         for (int j = 0; j < SIZEX; j++) {
-            datachunk[2*j] = (short)(x[j]*1000);
-            datachunk[2*j+1] = (short)(y[j]*1000);
+            datachunk[2*j] = (short)(x[j]);
+            datachunk[2*j+1] = (short)(y[j]);
         }
 
+        Arrays.fill(y,0.0);
+        for (int j = 0; j < SIZEX * 2; j++) {
+            if (j<SIZEX) {
+                x[j] = before_dataR2[j];
+
+            }
+            else {
+                x[j] = audio_dataR[(j - SIZEX)];//
+
+            }
+        }
+        ccomboluteL(x,y);
+
+        for (int j = 0; j < SIZEX; j++) {
+            datachunk[2*j+1] += (short)(x[j]);
+            datachunk[2*j] += (short)(y[j]);
+        }
        audioTrack.write(datachunk,0,2*SIZEX);
+
+        System.arraycopy(audio_dataLbuf,0,audio_dataL,0,audio_pos);
+        System.arraycopy(audio_dataRbuf,0,audio_dataR,0,audio_pos);
+
+
     }
     public void play()
     {
@@ -264,17 +261,22 @@ public class StreamPlayer {
         // get the sample rate to configure AudioTrack
         int sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
 
+        //int maxSize = format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE);
+
         // create our AudioTrack instance
         audioTrack = new AudioTrack(
                 AudioManager.STREAM_MUSIC,
                 sampleRate,
                 AudioFormat.CHANNEL_OUT_STEREO,
                 AudioFormat.ENCODING_PCM_16BIT,
-                AudioTrack.getMinBufferSize (
+                /*AudioTrack.getMinBufferSize (
                         sampleRate,
                         AudioFormat.CHANNEL_OUT_STEREO,
                         AudioFormat.ENCODING_PCM_16BIT
-                ),
+                )
+                */
+                2*2*65536
+                ,
                 AudioTrack.MODE_STREAM
         );
 
@@ -446,5 +448,17 @@ public class StreamPlayer {
         protected void onProgressUpdate(Void... values) {
         }
     }
+    public native void cfftinit(int size);
+    //public native void cfft(double x[],double y[],boolean isReverse);
+    //public native void cifft(double x[],double y[]);
+    public native void csetfil(double r1r[],double r1i[],double r2r[],double r2i[],
+                                  double l1r[],double l1i[],double l2r[],double l2i[]
+                               );
+    public native void ccomboluteR(double x[],double y[]);
+    public native void ccomboluteL(double x[],double y[]);
+    //public native void cadjust(double x[],double y[]);
 
+    static {
+        System.loadLibrary("native-lib");
+    }
 }

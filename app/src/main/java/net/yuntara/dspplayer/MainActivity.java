@@ -47,7 +47,6 @@ public class MainActivity extends AppCompatActivity {
         tv = (TextView) findViewById(R.id.sample_text);
         tv.setText(stringFromJNI());
 
-
         songView = (ListView)findViewById(R.id.song_list);
         songList = new ArrayList<Song>();
         checkPermissons();
@@ -60,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
         songView.setAdapter(songAdt);
 
     }
+
+
     private ServiceConnection musicConnection = new ServiceConnection(){
 
         @Override
@@ -205,7 +206,6 @@ public class MainActivity extends AppCompatActivity {
      * which is packaged with this application.
      */
     public native String stringFromJNI();
-
     // Used to load the 'native-lib' library on application startup.
     static {
         System.loadLibrary("native-lib");
