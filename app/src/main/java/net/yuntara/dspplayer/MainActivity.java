@@ -45,6 +45,7 @@ public class MainActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.action_shuffle:
                 //shuffle
+                musicSrv.Shuffle();
                 break;
             case R.id.action_end:
                 stopService(playIntent);

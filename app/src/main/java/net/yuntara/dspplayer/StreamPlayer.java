@@ -39,9 +39,11 @@ public class StreamPlayer {
     protected int inputBufIndex;
     protected int bufIndexCheck;
     protected int lastInputBufIndex;
+    private boolean finished = true;
     private final int SIZEX = 65536;
+    private boolean stopped = false;
     private Context mainContext;
-
+    private MusicService msc;
     private short datachunk[];
     //private FFT fft;
     double x[],y[];
@@ -57,7 +59,7 @@ public class StreamPlayer {
         Stopped,    // player is stopped and not prepared to play
         Playing,    // playback active
     };
-    private State mState = State.Retrieving;
+    private State mState = State.Stopped;
     private String LOG_TAG = "StreamPlayer";
 
 
@@ -66,9 +68,10 @@ public class StreamPlayer {
         songUri = uri;
 
     }
-    public StreamPlayer(){
+    public StreamPlayer(MusicService m){
         //fft = new FFT(SIZEX*2);
         cfftinit(SIZEX*2);
+        msc = m;
     }
     public void loadFilter(Context context){
         ///*
@@ -204,10 +207,27 @@ public class StreamPlayer {
         //mDelegateHandler.onRadioPlayerBuffering(MP3RadioStreamPlayer.this);
 
         doStop = false;
+        finished = false;
         bufIndexCheck = 0;
-        lastInputBufIndex = -1;
 
-        new DecodeOperation().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        lastInputBufIndex = -1;
+        DecodeOperation dcd = new DecodeOperation();
+        dcd.setOnCallBack(new CallBackTask(){
+
+            @Override
+            public void CallBack() {
+
+                super.CallBack();
+
+                if(!stopped) {
+                    msc.OnPlayEnd();
+                    stopped = false;
+                }
+
+            }
+
+        });
+        dcd.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
     }
     private void decodeLoop() throws  IOException
@@ -359,7 +379,7 @@ public class StreamPlayer {
         }
 
         this.mState = State.Stopped;
-        doStop = true;
+        //doStop = true;
 
 
     }
@@ -395,18 +415,25 @@ public class StreamPlayer {
     {
         doStop = true;
 
-
-        while(mState == State.Playing) {
+        if(mState != State.Stopped){
+            stopped = true;
+        }
+        while(mState != State.Stopped) {
             try{
                 Thread.sleep(10);
             }catch(InterruptedException e){
                 break;
             }
+
+        }
+
+    }
+    public static class CallBackTask {
+        public void CallBack() {
         }
     }
-
     private class DecodeOperation extends AsyncTask<Void, Void, Void> {
-
+        private CallBackTask callbacktask;
         @Override
         protected Void doInBackground(Void... values) {
             try {
@@ -414,9 +441,19 @@ public class StreamPlayer {
             } catch (IOException e) {
                 //TODO catch IOException at decode
             }
+            finished=true;
             return null;
         }
+        @Override
+        protected void onPostExecute(Void result)  {
+            super.onPostExecute(null);
 
+            callbacktask.CallBack();
+
+        }
+        public void setOnCallBack(CallBackTask _cbj) {
+            callbacktask = _cbj;
+        }
         @Override
         protected void onPreExecute() {
         }

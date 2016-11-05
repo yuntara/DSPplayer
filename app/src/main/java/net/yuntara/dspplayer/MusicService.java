@@ -7,6 +7,8 @@ import android.net.Uri;
 import android.os.IBinder;
 
 import java.util.ArrayList;
+import java.util.Collections;
+
 import android.os.Binder;
 import android.os.PowerManager;
 import android.util.Log;
@@ -27,7 +29,24 @@ public class MusicService extends Service {
     public void setSong(int songIndex){
         songPosn=songIndex;
     }
+    public void playNext(){
+        songPosn++;
+        if(songPosn>=songs.size()){
+            songPosn =0;
+        }
+        playSong();
+    }
+    public void Shuffle(){
 
+        //streamPlayer.stop();
+        Collections.shuffle(songs);
+        songPosn = 0;
+        playSong();
+
+    }
+    public void OnPlayEnd(){
+        playNext();
+    }
     public void playSong(){
         streamPlayer.reset();
         //get song
@@ -68,7 +87,7 @@ public class MusicService extends Service {
         super.onCreate();
         //initialize position
         songPosn=0;
-        streamPlayer = new StreamPlayer();
+        streamPlayer = new StreamPlayer(this);
 
     }
     public void initMusicPlayer(){
