@@ -179,7 +179,23 @@ public class StreamPlayer {
         System.arraycopy(audio_dataR, 0, before_dataR, 0, SIZEX);
 
         Arrays.fill(y,0.0);
+        for (int j = 0; j < SIZEX * 2; j++) {
+            if (j<SIZEX) {
+                x[j] = before_dataL2[j];
+                y[j] = before_dataR2[j];
+            }
+            else {
+                x[j] = audio_dataL[(j - SIZEX)];//
+                y[j] = audio_dataR[(j - SIZEX)];
+            }
+        }
+        ccomboluteRL(x,y);
+        for (int j = 0; j < SIZEX; j++) {
+            datachunk[2*j] = (short)(x[j]);
+            datachunk[2*j+1] = (short)(y[j]);
+        }
 
+        /*
         for (int j = 0; j < SIZEX * 2; j++) {
             if (j<SIZEX) {
                 x[j] = before_dataL2[j];
@@ -214,6 +230,7 @@ public class StreamPlayer {
             datachunk[2*j+1] += (short)(x[j]);
             datachunk[2*j] += (short)(y[j]);
         }
+        */
        audioTrack.write(datachunk,0,2*SIZEX);
 
         System.arraycopy(audio_dataLbuf,0,audio_dataL,0,audio_pos);
@@ -456,6 +473,7 @@ public class StreamPlayer {
                                );
     public native void ccomboluteR(double x[],double y[]);
     public native void ccomboluteL(double x[],double y[]);
+    public native void ccomboluteRL(double x[],double y[]);
     //public native void cadjust(double x[],double y[]);
 
     static {

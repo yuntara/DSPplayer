@@ -17,7 +17,8 @@ jdouble filL1_i[SIZEX+1];
 jdouble filL2_i[SIZEX+1];
 jdouble c_r [SIZEX*2];
 jdouble c_i [SIZEX*2];
-
+jdouble d_r [SIZEX*2];
+jdouble d_i [SIZEX*2];
 jdouble _cos[SIZEX], _sin[SIZEX];
 jstring
 Java_net_yuntara_dspplayer_MainActivity_stringFromJNI(
@@ -97,6 +98,78 @@ cfft(
 }
 void cifft(double *x, double *y){
     cfft(x,y,true);
+}
+void Java_net_yuntara_dspplayer_StreamPlayer_ccomboluteRL(JNIEnv *env, jobject jthis, jdoubleArray jx, jdoubleArray jy){
+    jdouble *x = env->GetDoubleArrayElements(jx, NULL);
+    jdouble *y = env->GetDoubleArrayElements(jy, NULL);
+    jdouble buf;
+    jdouble b_r,b_i;
+
+    cfft(x,y,false);
+/*
+ RFFT_r= (x[j] + x[n-j])/2
+ RFFT_i= (y[j] - y[n-j])/2
+ LFFT_r= (x[j] - x[n-j])/2
+ LFFT_i= (y[j] + y[n-j])/2
+
+ */
+    y[SIZEX] =0;
+    for (int j = 0; j < SIZEX + 1; j++) {
+        if (j == 0) {
+            c_r[j] = (x[0]);
+            c_i[j] = 0;
+            d_r[j] = (y[0]);
+            d_i[j] = 0;
+        } else {
+        c_r[j] = (x[j] + x[n - j]) / 2;
+        c_i[j] = (y[j] - y[n - j]) / 2;
+
+        d_r[j] = (x[j] - x[n - j]) / 2;
+        d_i[j] = (y[j] + y[n - j]) / 2;
+        }
+        buf = c_r[j];
+        x[j] = (buf * filR2_r[j]) - (c_i[j] * filR2_i[j]);
+        y[j] = (buf * filR2_i[j]) + (c_i[j] * filR2_r[j]);
+        if (j > 0 && j < SIZEX) {
+            x[SIZEX * 2 - j] = x[j];
+            y[SIZEX * 2 - j] = -y[j];
+        }
+
+        b_r = (c_r[j] * filR1_r[j]) - (c_i[j] * filR1_i[j]);
+        b_i = (c_r[j] * filR1_i[j]) + (c_i[j] * filR1_r[j]);
+
+        x[j] = x[j] - b_i;
+        y[j] = y[j] + b_r;
+        if (j > 0 && j < SIZEX) {
+            x[SIZEX*2-j] += b_i;
+            y[SIZEX*2-j] += b_r;
+        }
+        b_r = (d_r[j] * filL2_r[j]) - (d_i[j] * filL2_i[j]);
+        b_i = (d_r[j]* filL2_i[j]) + (d_i[j] * filL2_r[j]);
+
+        x[j] -= b_i;
+        y[j] += b_r;
+        if (j > 0 && j < SIZEX) {
+            x[SIZEX*2-j] += b_i;
+            y[SIZEX*2-j] += b_r;
+        }
+        b_r = (d_r[j] * filL1_r[j]) - (d_i[j] * filL1_i[j]);
+        b_i = (d_r[j] * filL1_i[j]) + (d_i[j] * filL1_r[j]);
+
+        x[j] += b_r;
+        y[j] += b_i;
+        if (j > 0 && j < SIZEX) {
+
+            x[SIZEX * 2 - j] += b_r;
+            y[SIZEX * 2 - j] += -b_i;
+        }
+    }
+
+
+    cifft(x,y);
+
+    env->ReleaseDoubleArrayElements(jx,x,NULL);
+    env->ReleaseDoubleArrayElements(jy,y,NULL);
 }
 void Java_net_yuntara_dspplayer_StreamPlayer_ccomboluteR(JNIEnv *env, jobject jthis, jdoubleArray jx, jdoubleArray jy){
     jdouble *x = env->GetDoubleArrayElements(jx, NULL);
