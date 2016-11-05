@@ -71,6 +71,10 @@ public class MusicService extends Service {
         streamPlayer = new StreamPlayer();
 
     }
+    public void initMusicPlayer(){
+        //set player properties
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
         return musicBind;

@@ -45,16 +45,11 @@ public class StreamPlayer {
     private short datachunk[];
     //private FFT fft;
     double x[],y[];
-    double c_r[];
-    double c_i[];
+
     short before_dataL[],
             before_dataR[];
-    short before_dataL2[],
-            before_dataR2[];
     short audio_dataL[],
             audio_dataR[];
-    short audio_dataLbuf[],
-            audio_dataRbuf[];
     int audio_pos = 0;
 
     public enum State {
@@ -93,16 +88,13 @@ public class StreamPlayer {
         filL1_i = new double[SIZEX+1];
         filL2_r = new double[SIZEX+1];
         filL2_i = new double[SIZEX+1];
-        c_r = new double[SIZEX*2];
-        c_i = new double[SIZEX*2];
+
         before_dataL = new short[SIZEX];
         before_dataR = new short[SIZEX];
-        before_dataL2 = new short[SIZEX];
-        before_dataR2 = new short[SIZEX];
+
         audio_dataL = new short[SIZEX];
         audio_dataR = new short[SIZEX];
-        audio_dataLbuf = new short[SIZEX];
-        audio_dataRbuf = new short[SIZEX];
+
         datachunk = new short[SIZEX*2];
         x = new double[SIZEX*2];
         y = new double[SIZEX*2];
@@ -147,12 +139,13 @@ public class StreamPlayer {
     private void queueChunk(short[] chunk,int csize) {
         //csize = (datalength) * (2channel)
         //畳みこみできるサイズになるまでキャッシュする
-        double b_r,b_i;
+        double b_r, b_i;
         double buf;
+        int audio_pos_prev;
         Boolean process = false;
-        int samples = csize/2;
+        int samples = csize / 2;
         for (int i = 0; i < samples; i++) {
-            audio_dataL[audio_pos + i] = chunk[2 * (i)+1];
+            audio_dataL[audio_pos + i] = chunk[2 * (i) + 1];
             audio_dataR[audio_pos + i] = chunk[2 * (i)];
             if (audio_pos + i >= SIZEX - 1) {
                 audio_pos = i;
@@ -166,75 +159,42 @@ public class StreamPlayer {
             return;
         }
 
-        //畳みこみ切れない残りはとっておく
-        for (int i = 0; i < samples - audio_pos - 1; i++) {
-            audio_dataLbuf[i] = chunk[2 * (audio_pos + i + 1) + 1];
-            audio_dataRbuf[i] = chunk[2 * (audio_pos + i + 1)];
-        }
 
+        audio_pos_prev = audio_pos;
         audio_pos = samples - audio_pos - 1;
-        System.arraycopy(before_dataL, 0, before_dataL2, 0, SIZEX);
-        System.arraycopy(before_dataR, 0, before_dataR2, 0, SIZEX);
-        System.arraycopy(audio_dataL, 0, before_dataL, 0, SIZEX);
-        System.arraycopy(audio_dataR, 0, before_dataR, 0, SIZEX);
 
-        Arrays.fill(y,0.0);
+        //円状畳み込み用
         for (int j = 0; j < SIZEX * 2; j++) {
             if (j<SIZEX) {
-                x[j] = before_dataL2[j];
-                y[j] = before_dataR2[j];
+                x[j] = before_dataL[j];
+                y[j] = before_dataR[j];
             }
             else {
                 x[j] = audio_dataL[(j - SIZEX)];//
                 y[j] = audio_dataR[(j - SIZEX)];
             }
         }
+
+        //次回の畳みこみに使う
+        System.arraycopy(audio_dataL, 0, before_dataL, 0, SIZEX);
+        System.arraycopy(audio_dataR, 0, before_dataR, 0, SIZEX);
+
+
         ccomboluteRL(x,y);
         for (int j = 0; j < SIZEX; j++) {
             datachunk[2*j] = (short)(x[j]);
             datachunk[2*j+1] = (short)(y[j]);
         }
 
-        /*
-        for (int j = 0; j < SIZEX * 2; j++) {
-            if (j<SIZEX) {
-                x[j] = before_dataL2[j];
-
-            }
-            else {
-                x[j] = audio_dataL[(j - SIZEX)];//
-
-            }
-        }
-        ccomboluteR(x,y);
-
-        for (int j = 0; j < SIZEX; j++) {
-            datachunk[2*j] = (short)(x[j]);
-            datachunk[2*j+1] = (short)(y[j]);
-        }
-
-        Arrays.fill(y,0.0);
-        for (int j = 0; j < SIZEX * 2; j++) {
-            if (j<SIZEX) {
-                x[j] = before_dataR2[j];
-
-            }
-            else {
-                x[j] = audio_dataR[(j - SIZEX)];//
-
-            }
-        }
-        ccomboluteL(x,y);
-
-        for (int j = 0; j < SIZEX; j++) {
-            datachunk[2*j+1] += (short)(x[j]);
-            datachunk[2*j] += (short)(y[j]);
-        }
-        */
        audioTrack.write(datachunk,0,2*SIZEX);
+        //畳みこみ切れない残りはとっておく
+        for (int i = 0; i < samples - audio_pos_prev - 1; i++) {
+            audio_dataL[i] = chunk[2 * (audio_pos_prev + i + 1) + 1];
+            audio_dataR[i] = chunk[2 * (audio_pos_prev + i + 1)];
 
-        System.arraycopy(audio_dataLbuf,0,audio_dataL,0,audio_pos);
-        System.arraycopy(audio_dataRbuf,0,audio_dataR,0,audio_pos);
+        }
+        //System.arraycopy(audio_dataLbuf,0,audio_dataL,0,audio_pos);
+        //System.arraycopy(audio_dataRbuf,0,audio_dataR,0,audio_pos);
 
 
     }
@@ -471,8 +431,6 @@ public class StreamPlayer {
     public native void csetfil(double r1r[],double r1i[],double r2r[],double r2i[],
                                   double l1r[],double l1i[],double l2r[],double l2i[]
                                );
-    public native void ccomboluteR(double x[],double y[]);
-    public native void ccomboluteL(double x[],double y[]);
     public native void ccomboluteRL(double x[],double y[]);
     //public native void cadjust(double x[],double y[]);
 
