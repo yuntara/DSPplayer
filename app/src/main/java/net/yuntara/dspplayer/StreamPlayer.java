@@ -44,15 +44,14 @@ public class StreamPlayer {
     private boolean stopped = false;
     private Context mainContext;
     private MusicService msc;
-    private short datachunk[];
-    //private FFT fft;
-    double x[],y[];
+    private float datachunk[];
+    private float x[],y[];
 
-    short before_dataL[],
+    private short before_dataL[],
             before_dataR[];
-    short audio_dataL[],
+    private short audio_dataL[],
             audio_dataR[];
-    int audio_pos = 0;
+    private int audio_pos = 0;
 
     public enum State {
         Retrieving, // retrieving music (filling buffer)
@@ -69,28 +68,28 @@ public class StreamPlayer {
 
     }
     public StreamPlayer(MusicService m){
-        //fft = new FFT(SIZEX*2);
+        //native_lib initialize func
         cfftinit(SIZEX*2);
         msc = m;
     }
     public void loadFilter(Context context){
         ///*
-        double filR1_r[];
-        double filR2_r[];
-        double filL1_r[];
-        double filL2_r[];
-        double filR1_i[];
-        double filR2_i[];
-        double filL1_i[];
-        double filL2_i[];
-        filR1_r = new double[SIZEX+1];
-        filR1_i = new double[SIZEX+1];
-        filR2_r = new double[SIZEX+1];
-        filR2_i = new double[SIZEX+1];
-        filL1_r = new double[SIZEX+1];
-        filL1_i = new double[SIZEX+1];
-        filL2_r = new double[SIZEX+1];
-        filL2_i = new double[SIZEX+1];
+        float filR1_r[];
+        float filR2_r[];
+        float filL1_r[];
+        float filL2_r[];
+        float filR1_i[];
+        float filR2_i[];
+        float filL1_i[];
+        float filL2_i[];
+        filR1_r = new float[SIZEX+1];
+        filR1_i = new float[SIZEX+1];
+        filR2_r = new float[SIZEX+1];
+        filR2_i = new float[SIZEX+1];
+        filL1_r = new float[SIZEX+1];
+        filL1_i = new float[SIZEX+1];
+        filL2_r = new float[SIZEX+1];
+        filL2_i = new float[SIZEX+1];
 
         before_dataL = new short[SIZEX];
         before_dataR = new short[SIZEX];
@@ -98,58 +97,64 @@ public class StreamPlayer {
         audio_dataL = new short[SIZEX];
         audio_dataR = new short[SIZEX];
 
-        datachunk = new short[SIZEX*2];
-        x = new double[SIZEX*2];
-        y = new double[SIZEX*2];
+        datachunk = new float[SIZEX*2];
+        x = new float[SIZEX*2];
+        y = new float[SIZEX*2];
 
         final int id = context.getResources().getIdentifier("out", "raw", context.getPackageName());
         if (id == 0) {    //エラーにはならない
             return;
-            // throw new Exception("aa");
         }
         InputStream is = context.getResources().openRawResource(id);
         DataInputStream ds = new DataInputStream(is);
         try {
 
-
-            //R1_r R1_i
             for (int i = 0; i <= SIZEX; i++) {
-                filR1_r[i] = ds.readDouble();
-                filR1_i[i] = ds.readDouble();
+                filR1_r[i] = (float)ds.readDouble();
+                filR1_i[i] = (float)ds.readDouble();
             }
             for (int i = 0; i <= SIZEX; i++) {
-                filR2_r[i] = ds.readDouble();
-                filR2_i[i] = ds.readDouble();
+                filR2_r[i] = (float)ds.readDouble();
+                filR2_i[i] = (float)ds.readDouble();
             }
             for (int i = 0; i <= SIZEX; i++) {
-                filL1_r[i] = ds.readDouble();
-                filL1_i[i] = ds.readDouble();
+                filL1_r[i] = (float)ds.readDouble();
+                filL1_i[i] = (float)ds.readDouble();
             }
             for (int i = 0; i <= SIZEX; i++) {
-                filL2_r[i] = ds.readDouble();
-                filL2_i[i] = ds.readDouble();
+                filL2_r[i] = (float)ds.readDouble();
+                filL2_i[i] = (float)ds.readDouble();
             }
             csetfil(filR1_r,filR1_i,filR2_r,filR2_i,filL1_r,filL1_i,filL2_r,filL2_i);
         }catch(IOException e){
-            return;
+
+            Arrays.fill(filR1_r,0);
+            Arrays.fill(filR1_i,0);
+            Arrays.fill(filL1_r,0);
+            Arrays.fill(filL1_i,0);
+            Arrays.fill(filR2_r,0);
+            Arrays.fill(filR2_i,0);
+            Arrays.fill(filL2_r,0);
+            Arrays.fill(filL2_i,0);
+            csetfil(filR1_r,filR1_i,filR2_r,filR2_i,filL1_r,filL1_i,filL2_r,filL2_i);
         }
-        //*/
-        // /return loadText(is, DEFAULT_ENCORDING);
-
-
 
     }
-    private void queueChunk(short[] chunk,int csize) {
+    //private void queueChunk(short[] chunk,int csize) {
+    private void queueChunk(java.nio.ShortBuffer shortBuffer,int csize) {
         //csize = (datalength) * (2channel)
-        //畳みこみできるサイズになるまでキャッシュする
-        double b_r, b_i;
-        double buf;
-        int audio_pos_prev;
+        //畳みこみできるサイズになるまでバッファに貯める
         Boolean process = false;
+
         int samples = csize / 2;
+
+        //変数名のLRが間違ってますが、フィルタ作成の方のプログラムから間違っているので、そのうちrefactorします
         for (int i = 0; i < samples; i++) {
-            audio_dataL[audio_pos + i] = chunk[2 * (i) + 1];
-            audio_dataR[audio_pos + i] = chunk[2 * (i)];
+            //audio_dataL[audio_pos + i] = chunk[2 * (i) + 1];//右音声
+            //audio_dataR[audio_pos + i] = chunk[2 * (i)];    //左音声
+
+            audio_dataR[audio_pos + i] = shortBuffer.get();    //左音声
+            audio_dataL[audio_pos + i] = shortBuffer.get();   //右音声
             if (audio_pos + i >= SIZEX - 1) {
                 audio_pos = i;
                 process = true;
@@ -162,47 +167,54 @@ public class StreamPlayer {
             return;
         }
 
-
-        audio_pos_prev = audio_pos;
-        audio_pos = samples - audio_pos - 1;
-
-        //円状畳み込み用
+        //overlap-save法のために、2ブロック分のデータが必要　　(overlap-addだと畳みこみ後に連結処理が入るので面倒くさいです)
         for (int j = 0; j < SIZEX * 2; j++) {
+            //前半ブロックは前回のデータ
             if (j<SIZEX) {
                 x[j] = before_dataL[j];
                 y[j] = before_dataR[j];
             }
+            //後半ブロックが今回のデータ
             else {
                 x[j] = audio_dataL[(j - SIZEX)];//
                 y[j] = audio_dataR[(j - SIZEX)];
             }
         }
 
-        //次回の畳みこみに使う
+        //次回の畳みこみに使う分をコピーしておく
         System.arraycopy(audio_dataL, 0, before_dataL, 0, SIZEX);
         System.arraycopy(audio_dataR, 0, before_dataR, 0, SIZEX);
 
-
+        //native_lib.cpp で畳みこみします
         ccomboluteRL(x,y);
+
+        //直線畳みこみ（ifftの前半部分）しか使わない
         for (int j = 0; j < SIZEX; j++) {
-            datachunk[2*j] = (short)(x[j]);
-            datachunk[2*j+1] = (short)(y[j]);
+            datachunk[2*j]   = x[j];
+            datachunk[2*j+1] = y[j];
         }
 
-       audioTrack.write(datachunk,0,2*SIZEX);
-        //畳みこみ切れない残りはとっておく
-        for (int i = 0; i < samples - audio_pos_prev - 1; i++) {
-            audio_dataL[i] = chunk[2 * (audio_pos_prev + i + 1) + 1];
-            audio_dataR[i] = chunk[2 * (audio_pos_prev + i + 1)];
+        /*
+          AudioTrack.WRITE_BLOCKING だとバッファーが書き込める状態になるまでブロックされるので、特別に処理をしなくても連続で再生される。
+          ただし、書き込むサイズとAudioTrackのバッファーサイズ違うと面倒くさいので合わせておく。
+        */
+       audioTrack.write(datachunk,0,2*SIZEX,AudioTrack.WRITE_BLOCKING);
 
+        //次回の書き込むオフセット
+        audio_pos = samples - audio_pos - 1;
+
+        //今回使わなかった分をバッファーの先頭にとっておきます。
+        for (int i = 0; i < audio_pos; i++) {
+            audio_dataR[i] = shortBuffer.get();
+            audio_dataL[i] = shortBuffer.get();
         }
-        //System.arraycopy(audio_dataLbuf,0,audio_dataL,0,audio_pos);
-        //System.arraycopy(audio_dataRbuf,0,audio_dataR,0,audio_pos);
+
 
 
     }
     public void play()
     {
+
         mState = State.Retrieving;
         //mDelegateHandler.onRadioPlayerBuffering(MP3RadioStreamPlayer.this);
 
@@ -233,8 +245,6 @@ public class StreamPlayer {
     private void decodeLoop() throws  IOException
     {
 
-        ByteBuffer[] codecInputBuffers;
-        ByteBuffer[] codecOutputBuffers;
 
         // extractor gets information about the stream
         extractor = new MediaExtractor();
@@ -252,30 +262,40 @@ public class StreamPlayer {
         codec = MediaCodec.createDecoderByType(mime);
         codec.configure(format, null /* surface */, null /* crypto */, 0 /* flags */);
         codec.start();
-        codecInputBuffers = codec.getInputBuffers();
-        codecOutputBuffers = codec.getOutputBuffers();
 
-        // get the sample rate to configure AudioTrack
         int sampleRate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE);
+
+        //int bits = format.getInteger(MediaFormat.KEY_PCM_ENCODING);
+
+        if(sampleRate != 44100 ){
+            this.mState = State.Stopped;
+            return;
+        }
+
 
         //int maxSize = format.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE);
 
+
         // create our AudioTrack instance
-        audioTrack = new AudioTrack(
-                AudioManager.STREAM_MUSIC,
-                sampleRate,
-                AudioFormat.CHANNEL_OUT_STEREO,
-                AudioFormat.ENCODING_PCM_16BIT,
+        if(audioTrack == null) {
+
+            audioTrack = new AudioTrack(
+                    AudioManager.STREAM_MUSIC,
+                    sampleRate,
+                    AudioFormat.CHANNEL_OUT_STEREO,
+                    AudioFormat.ENCODING_PCM_FLOAT,
                 /*AudioTrack.getMinBufferSize (
                         sampleRate,
                         AudioFormat.CHANNEL_OUT_STEREO,
                         AudioFormat.ENCODING_PCM_16BIT
                 )
                 */
-                2*2*65536
-                ,
-                AudioTrack.MODE_STREAM
-        );
+                    //2channel * bufferlength * sizeof(float)
+                    2 * SIZEX * 4
+                    ,
+                    AudioTrack.MODE_STREAM
+            );
+        }
 
         // start playing, we will feed you later
         audioTrack.play();
@@ -299,7 +319,9 @@ public class StreamPlayer {
                 bufIndexCheck++;
                 // Log.d(LOG_TAG, " bufIndexCheck " + bufIndexCheck);
                 if (inputBufIndex >= 0) {
-                    ByteBuffer dstBuf = codecInputBuffers[inputBufIndex];
+
+
+                    ByteBuffer dstBuf = codec.getInputBuffer(inputBufIndex);
 
                     int sampleSize =
                             extractor.readSampleData(dstBuf, 0 /* offset */);
@@ -337,39 +359,22 @@ public class StreamPlayer {
             int res = codec.dequeueOutputBuffer(info, kTimeOutUs);
 
             if (res >= 0) {
-                //Log.d(LOG_TAG, "got frame, size " + info.size + "/" + info.presentationTimeUs);
                 if (info.size > 0) {
                     noOutputCounter = 0;
                 }
-
                 int outputBufIndex = res;
-                ByteBuffer buf = codecOutputBuffers[outputBufIndex];
 
-                //byte[] chunk = new byte[info.size];
-                short[] chunk = new short[info.size/2];
-                buf.asShortBuffer().get(chunk);
-                //buf.get(chunk);
-                buf.clear();
-                if(chunk.length > 0){
-                    //audioTrack.write(chunk,0,chunk.length);
-                    queueChunk(chunk,chunk.length);
-                    /*
-                    if(this.mState != State.Playing)
-                    {
-                        mDelegateHandler.onRadioPlayerPlaybackStarted(MP3RadioStreamPlayer.this);
-                    }
-                    */
+                ByteBuffer buf = codec.getOutputBuffer(outputBufIndex);
+                if(info.size > 0){
+                    queueChunk(buf.asShortBuffer(),info.size/2);
                     this.mState = State.Playing;
-
                 }
+                buf.clear();
                 codec.releaseOutputBuffer(outputBufIndex, false /* render */);
                 if ((info.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
 
                     sawOutputEOS = true;
                 }
-            } else if (res == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-                codecOutputBuffers = codec.getOutputBuffers();
-
             } else if (res == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 MediaFormat oformat = codec.getOutputFormat();
 
@@ -379,9 +384,6 @@ public class StreamPlayer {
         }
 
         this.mState = State.Stopped;
-        //doStop = true;
-
-
     }
     public void reset(){
         stop();
@@ -463,13 +465,13 @@ public class StreamPlayer {
         }
     }
     public native void cfftinit(int size);
-    //public native void cfft(double x[],double y[],boolean isReverse);
-    //public native void cifft(double x[],double y[]);
-    public native void csetfil(double r1r[],double r1i[],double r2r[],double r2i[],
-                                  double l1r[],double l1i[],double l2r[],double l2i[]
+    //public native void cfft(float x[],float y[],boolean isReverse);
+    //public native void cifft(float x[],float y[]);
+    public native void csetfil(float r1r[],float r1i[],float r2r[],float r2i[],
+                                  float l1r[],float l1i[],float l2r[],float l2i[]
                                );
-    public native void ccomboluteRL(double x[],double y[]);
-    //public native void cadjust(double x[],double y[]);
+    public native void ccomboluteRL(float x[],float y[]);
+    //public native void cadjust(float x[],float y[]);
 
     static {
         System.loadLibrary("native-lib");
