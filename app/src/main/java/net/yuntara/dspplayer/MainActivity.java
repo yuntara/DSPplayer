@@ -93,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
 
     }
     private void registerListView(){
-        songView.setSelection(0);
+        //songView.setSelection(0);
         SongAdapter songAdt = new SongAdapter(this, songList);
         songView.setAdapter(songAdt);
     }
@@ -203,6 +203,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             } else {
                 //許可
+                getSongList();
                 registerListView();
             }
         } else {
