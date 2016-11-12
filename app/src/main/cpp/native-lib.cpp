@@ -1,41 +1,49 @@
 #include <jni.h>
 #include <string>
 #include <math.h>
+
 #define SIZEX 65536
+//#define  FLOAT float
+//#define JFLOAT jfloat
+
+#define COS cosf
+#define SIN sinf
+typedef float FLOAT;
+typedef jfloat JFLOAT;
+typedef jfloatArray JFLOATArray;
 
 
 extern "C" {
 
 jint n,m;
-jdouble filR1_r[SIZEX+1];
-jdouble filR2_r[SIZEX+1];
-jdouble filL1_r[SIZEX+1];
-jdouble filL2_r[SIZEX+1];
-jdouble filR1_i[SIZEX+1];
-jdouble filR2_i[SIZEX+1];
-jdouble filL1_i[SIZEX+1];
-jdouble filL2_i[SIZEX+1];
-jdouble c_r;// [SIZEX*2];
-jdouble c_i;// [SIZEX*2];
-jdouble d_r;// [SIZEX*2];
-jdouble d_i;// [SIZEX*2];
-jdouble _cos[SIZEX], _sin[SIZEX];
+JFLOAT filR1_r[SIZEX+1];
+JFLOAT filR2_r[SIZEX+1];
+JFLOAT filL1_r[SIZEX+1];
+JFLOAT filL2_r[SIZEX+1];
+JFLOAT filR1_i[SIZEX+1];
+JFLOAT filR2_i[SIZEX+1];
+JFLOAT filL1_i[SIZEX+1];
+JFLOAT filL2_i[SIZEX+1];
+JFLOAT c_r;// [SIZEX*2];
+JFLOAT c_i;// [SIZEX*2];
+JFLOAT d_r;// [SIZEX*2];
+JFLOAT d_i;// [SIZEX*2];
+JFLOAT _cos[SIZEX], _sin[SIZEX];
+
 jstring
 Java_net_yuntara_dspplayer_MainActivity_stringFromJNI(
         JNIEnv *env,
         jobject /* this */) {
     std::string hello = "Hello from C++";
-
+  
     return env->NewStringUTF(hello.c_str());
 }
 
-void
-cfft(
-        double *x, double *y,jboolean isReverse) {
+void cfft(JFLOAT *x, JFLOAT *y,bool isReverse) {
 
 
     int i, j, k, n1, n2, a;
-    jdouble c, s, t1, t2;
+    JFLOAT c, s, t1, t2;
 
     // Bit-reverse
     j = 0;
@@ -58,7 +66,7 @@ cfft(
         }
     }
 
-    // FFT
+
     n1 = 0;
     n2 = 1;
 
@@ -89,43 +97,40 @@ cfft(
 
     }
     if (isReverse) {
-    for (int i = 0; i < n; i++) {
-        x[i] /= n;
-        y[i] /= n;
+        for (int q = 0; q < n; q++) {
+            y[q] /= n;
+            x[q] /= n;
+        }
     }
-   }
 
 }
-void cifft(double *x, double *y){
-    cfft(x,y,true);
-}
-void Java_net_yuntara_dspplayer_StreamPlayer_ccomboluteRL(JNIEnv *env, jobject jthis, jdoubleArray jx, jdoubleArray jy){
-    jdouble *x = env->GetDoubleArrayElements(jx, NULL);
-    jdouble *y = env->GetDoubleArrayElements(jy, NULL);
-    jdouble buf;
-    jdouble b_r,b_i;
+void Java_net_yuntara_dspplayer_StreamPlayer_ccomboluteRL(JNIEnv *env, jobject /* jthis */, JFLOATArray jx, JFLOATArray jy){
+    JFLOAT *x = env->GetFloatArrayElements(jx, NULL);
+    JFLOAT *y = env->GetFloatArrayElements(jy, NULL);
+    JFLOAT buf;
+    JFLOAT b_r,b_i;
 
     cfft(x,y,false);
 /*
- RFFT_r= (x[j] + x[n-j])/2
- RFFT_i= (y[j] - y[n-j])/2
- LFFT_r= (x[j] - x[n-j])/2
- LFFT_i= (y[j] + y[n-j])/2
+ R_FFT_r is (x[j] + x[n-j])/2
+ R_FFT_i is (y[j] - y[n-j])/2
+ L_FFT_r is (x[j] - x[n-j])/2
+ L_FFT_i is (y[j] + y[n-j])/2
 
  */
     y[SIZEX] =0;
     for (int j = 0; j < SIZEX + 1; j++) {
         if (j == 0) {
             c_r = (x[0]);
-            c_i = 0;
+            c_i = 0.0f;
             d_r = (y[0]);
-            d_i = 0;
+            d_i = 0.0f;
         } else {
-            c_r = (x[j] + x[n - j]) / 2;
-            c_i = (y[j] - y[n - j]) / 2;
+            c_r = (x[j] + x[n - j]) / 2.0f;
+            c_i = (y[j] - y[n - j]) / 2.0f;
 
-            d_r = (x[j] - x[n - j]) / 2;
-            d_i = (y[j] + y[n - j]) / 2;
+            d_r = (x[j] - x[n - j]) / 2.0f;
+            d_i = (y[j] + y[n - j]) / 2.0f;
         }
 
         b_r = (c_r* filR2_r[j]) - (c_i * filR2_i[j]);
@@ -143,7 +148,8 @@ void Java_net_yuntara_dspplayer_StreamPlayer_ccomboluteRL(JNIEnv *env, jobject j
         b_i = (c_r * filR1_i[j]) + (c_i * filR1_r[j]);
 
         b_r += (d_r * filL2_r[j]) - (d_i * filL2_i[j]);
-        b_i += (d_r* filL2_i[j]) + (d_i * filL2_r[j]);
+        b_i += (d_r* filL2_i[j])  + (d_i * filL2_r[j]);
+
         x[j] -=  b_i;
         y[j] +=  b_r;
         if (j > 0 && j < SIZEX) {
@@ -152,66 +158,64 @@ void Java_net_yuntara_dspplayer_StreamPlayer_ccomboluteRL(JNIEnv *env, jobject j
         }
 
 
-
     }
 
+    //ifft
+    cfft(x,y,true);
 
-    cifft(x,y);
-
-    env->ReleaseDoubleArrayElements(jx,x,NULL);
-    env->ReleaseDoubleArrayElements(jy,y,NULL);
+    env->ReleaseFloatArrayElements(jx,x,NULL);
+    env->ReleaseFloatArrayElements(jy,y,NULL);
 }
 
-void Java_net_yuntara_dspplayer_StreamPlayer_csetfil(JNIEnv *env, jobject jthis,
-                                                     jdoubleArray jr1r, jdoubleArray jr1i,jdoubleArray jr2r,jdoubleArray jr2i,
-                                                     jdoubleArray jl1r, jdoubleArray jl1i,jdoubleArray jl2r,jdoubleArray jl2i
+void Java_net_yuntara_dspplayer_StreamPlayer_csetfil(JNIEnv *env, jobject /*jthis*/,
+                                                     JFLOATArray jr1r, JFLOATArray jr1i,JFLOATArray jr2r,JFLOATArray jr2i,
+                                                     JFLOATArray jl1r, JFLOATArray jl1i,JFLOATArray jl2r,JFLOATArray jl2i
 ){
-    jdouble *r1r = env->GetDoubleArrayElements(jr1r,NULL);
-    for(int i=0;i<=SIZEX;i++)filR1_r[i] = r1r[i]*100;
-    env->ReleaseDoubleArrayElements(jr1r,r1r,NULL);
+    const float vol = 0.004f;
+    JFLOAT *r1r = env->GetFloatArrayElements(jr1r,NULL);
+    for(int i=0;i<=SIZEX;i++)filR1_r[i] = r1r[i]*vol;
+    env->ReleaseFloatArrayElements(jr1r,r1r,NULL);
 
-    jdouble *r1i = env->GetDoubleArrayElements(jr1i,NULL);
-    for(int i=0;i<=SIZEX;i++)filR1_i[i] = r1i[i]*100;
-    env->ReleaseDoubleArrayElements(jr1i,r1i,NULL);
+    JFLOAT *r1i = env->GetFloatArrayElements(jr1i,NULL);
+    for(int i=0;i<=SIZEX;i++)filR1_i[i] = r1i[i]*vol;
+    env->ReleaseFloatArrayElements(jr1i,r1i,NULL);
 
-    jdouble *r2r = env->GetDoubleArrayElements(jr2r,NULL);
-    for(int i=0;i<=SIZEX;i++)filR2_r[i] = r2r[i]*100;
-    env->ReleaseDoubleArrayElements(jr2r,r2r,NULL);
+    JFLOAT *r2r = env->GetFloatArrayElements(jr2r,NULL);
+    for(int i=0;i<=SIZEX;i++)filR2_r[i] = r2r[i]*vol;
+    env->ReleaseFloatArrayElements(jr2r,r2r,NULL);
 
-    jdouble *r2i = env->GetDoubleArrayElements(jr2i,NULL);
-    for(int i=0;i<=SIZEX;i++)filR2_i[i] = r2i[i]*100;
-    env->ReleaseDoubleArrayElements(jr2i,r2i,NULL);
+    JFLOAT *r2i = env->GetFloatArrayElements(jr2i,NULL);
+    for(int i=0;i<=SIZEX;i++)filR2_i[i] = r2i[i]*vol;
+    env->ReleaseFloatArrayElements(jr2i,r2i,NULL);
 
-    jdouble *l1r = env->GetDoubleArrayElements(jl1r,NULL);
-    for(int i=0;i<=SIZEX;i++)filL1_r[i] = l1r[i]*100;
-    env->ReleaseDoubleArrayElements(jl1r,l1r,NULL);
+    JFLOAT *l1r = env->GetFloatArrayElements(jl1r,NULL);
+    for(int i=0;i<=SIZEX;i++)filL1_r[i] = l1r[i]*vol;
+    env->ReleaseFloatArrayElements(jl1r,l1r,NULL);
 
-    jdouble *l1i = env->GetDoubleArrayElements(jl1i,NULL);
-    for(int i=0;i<=SIZEX;i++)filL1_i[i] = l1i[i]*100;
-    env->ReleaseDoubleArrayElements(jl1i,l1i,NULL);
+    JFLOAT *l1i = env->GetFloatArrayElements(jl1i,NULL);
+    for(int i=0;i<=SIZEX;i++)filL1_i[i] = l1i[i]*vol;
+    env->ReleaseFloatArrayElements(jl1i,l1i,NULL);
 
-    jdouble *l2r = env->GetDoubleArrayElements(jl2r,NULL);
-    for(int i=0;i<=SIZEX;i++)filL2_r[i] = l2r[i]*100;
-    env->ReleaseDoubleArrayElements(jl2r,l2r,NULL);
+    JFLOAT *l2r = env->GetFloatArrayElements(jl2r,NULL);
+    for(int i=0;i<=SIZEX;i++)filL2_r[i] = l2r[i]*vol;
+    env->ReleaseFloatArrayElements(jl2r,l2r,NULL);
 
-    jdouble *l2i = env->GetDoubleArrayElements(jl2i,NULL);
-    for(int i=0;i<=SIZEX;i++)filL2_i[i] = l2i[i]*100;
-    env->ReleaseDoubleArrayElements(jl2i,l2i,NULL);
+    JFLOAT *l2i = env->GetFloatArrayElements(jl2i,NULL);
+    for(int i=0;i<=SIZEX;i++)filL2_i[i] = l2i[i]*vol;
+    env->ReleaseFloatArrayElements(jl2i,l2i,NULL);
 
 
 }
 void Java_net_yuntara_dspplayer_StreamPlayer_cfftinit(JNIEnv *env, jobject jthis, jint size) {
     n = size;
-    m = (int) (log(n) / log(2));
-
+    m = static_cast<int>( log(n) / log(2));
 
     // precompute tables
-    //cos = new double[n / 2];
-    //sin = new double[n / 2];
 
     for (int i = 0; i < n / 2; i++) {
-        _cos[i] = cos(-2 * M_PI * i / n);
-        _sin[i] = sin(-2 * M_PI * i / n);
+
+        _cos[i] = static_cast<JFLOAT>( COS(-2.0f * (FLOAT)M_PI * i / n) );
+        _sin[i] = static_cast<JFLOAT>( SIN(-2.0f * (FLOAT)M_PI * i / n) );
     }
 
 }

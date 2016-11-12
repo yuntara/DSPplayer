@@ -20,9 +20,12 @@ public class MusicService extends Service {
     //current position
     private int songPosn;
     private StreamPlayer streamPlayer;
+    private MainActivity activity;
     private final IBinder musicBind = new MusicBinder();
     private Context mainContext;
-
+    public void setActivity(MainActivity act){
+        activity = act;
+    }
     public MusicService() {
 
     }
@@ -39,7 +42,7 @@ public class MusicService extends Service {
     public void Shuffle(){
 
         //streamPlayer.stop();
-        Collections.shuffle(songs);
+        //Collections.shuffle(songs);
         songPosn = 0;
         playSong();
 
@@ -48,6 +51,9 @@ public class MusicService extends Service {
         playNext();
     }
     public void playSong(){
+        if(activity != null){
+            activity.setPlayingSongPos(songPosn);
+        }
         streamPlayer.reset();
         //get song
         Song playSong = songs.get(songPosn);

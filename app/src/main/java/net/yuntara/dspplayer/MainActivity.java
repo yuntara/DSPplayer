@@ -10,7 +10,6 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.widget.TextView;
 
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -45,7 +44,12 @@ public class MainActivity extends AppCompatActivity {
         switch (item.getItemId()) {
             case R.id.action_shuffle:
                 //shuffle
+                Collections.shuffle(songList);
+                refreshSongView();
+                musicSrv.setList(songList);
+
                 musicSrv.Shuffle();
+
                 break;
             case R.id.action_end:
                 stopService(playIntent);
@@ -79,12 +83,27 @@ public class MainActivity extends AppCompatActivity {
 
         //ByteBuffer bf = new ByteBuffer();
 
-        SongAdapter songAdt = new SongAdapter(this, songList);
-        songView.setAdapter(songAdt);
+
 
     }
+    private void refreshSongView(){
+        SongAdapter adapter = (SongAdapter)songView.getAdapter();
+        adapter.refreshList(songList);
+        //adapter.getFilter().filter(s);//フィルタ実行。ソートもここで実行する。再描画も担当する
 
-
+    }
+    private void registerListView(){
+        songView.setSelection(0);
+        SongAdapter songAdt = new SongAdapter(this, songList);
+        songView.setAdapter(songAdt);
+    }
+    public void setPlayingSongPos(int songPos){
+        //songView.
+        //songView.setSelection(songPos);
+        SongAdapter adapter = (SongAdapter)songView.getAdapter();
+        adapter.setSelected(songPos);
+        //adapter.getItem()
+    }
     private ServiceConnection musicConnection = new ServiceConnection(){
 
         @Override
@@ -95,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
             //pass list
             musicSrv.setList(songList);
             musicSrv.loadFilter(MainActivity.this);
+            musicSrv.setActivity(MainActivity.this);
             musicBound = true;
 
         }
@@ -138,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             //  許諾されているので、やりたいことをする
             getSongList();
+            registerListView();
         }
 
     }
@@ -182,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             } else {
                 //許可
-                getSongList();
+                registerListView();
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
