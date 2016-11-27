@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Stream;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -34,6 +35,7 @@ public class StreamPlayer {
     protected MediaCodec codec;
     protected AudioTrack audioTrack;
     private boolean doStop;
+    private boolean paused = false;
     private Context songContext;
     private Uri songUri;
     protected int inputBufIndex;
@@ -52,7 +54,7 @@ public class StreamPlayer {
     private short audio_dataL[],
             audio_dataR[];
     private int audio_pos = 0;
-
+    private float seekTo = -1;
     public enum State {
         Retrieving, // retrieving music (filling buffer)
         Stopped,    // player is stopped and not prepared to play
@@ -71,6 +73,9 @@ public class StreamPlayer {
         //native_lib initialize func
         cfftinit(SIZEX*2);
         msc = m;
+    }
+    public void setPosition(float seekTo){
+        this.seekTo = seekTo;
     }
     public void loadFilter(Context context){
         ///*
@@ -144,7 +149,7 @@ public class StreamPlayer {
     private void queueChunk(java.nio.ShortBuffer shortBuffer,int csize) {
         //csize = (datalength) * (2channel)
         //畳みこみできるサイズになるまでバッファに貯める
-        Boolean process = false;
+        boolean process = false;
 
         int samples = csize / 2;
 
@@ -198,7 +203,7 @@ public class StreamPlayer {
           AudioTrack.WRITE_BLOCKING だとバッファーが書き込める状態になるまでブロックされるので、特別に処理をしなくても連続で再生される。
           ただし、書き込むサイズとAudioTrackのバッファーサイズ違うと面倒くさいので合わせておく。
         */
-       audioTrack.write(datachunk,0,2*SIZEX,AudioTrack.WRITE_BLOCKING);
+        audioTrack.write(datachunk,0,2*SIZEX,AudioTrack.WRITE_BLOCKING);
 
         //次回の書き込むオフセット
         audio_pos = samples - audio_pos - 1;
@@ -211,6 +216,9 @@ public class StreamPlayer {
 
 
 
+    }
+    public void pause(){
+        paused = !paused;
     }
     public void play()
     {
@@ -231,10 +239,10 @@ public class StreamPlayer {
 
                 super.CallBack();
 
-                if(!stopped) {
-                    msc.OnPlayEnd();
-                    stopped = false;
-                }
+
+                msc.OnPlayEnd();
+                stopped = false;
+
 
             }
 
@@ -242,7 +250,7 @@ public class StreamPlayer {
         dcd.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
     }
-    private void decodeLoop() throws  IOException
+    private void decodeLoop(DecodeOperation parent) throws  IOException
     {
 
 
@@ -308,9 +316,45 @@ public class StreamPlayer {
         boolean sawOutputEOS = false;
         int noOutputCounter = 0;
         int noOutputCounterLimit = 50;
-
+        long duration = format.getLong(MediaFormat.KEY_DURATION);
 
         while (!sawOutputEOS && noOutputCounter < noOutputCounterLimit && !doStop) {
+            while(paused && !doStop){
+                try {
+                    Thread.sleep(100);
+                    //info.
+
+
+                }catch(InterruptedException e){
+
+                }
+            }
+
+            if(this.seekTo>0){
+                long pos = (long) (duration * this.seekTo/1.0f);
+                Log.i(LOG_TAG,"seek to "+pos +" = "+duration +"*"+seekTo+"/1000.0f" );
+                this.seekTo=-1;
+                if(pos<duration) {
+
+                    //extractor.
+                    //extractor.seekTo(pos, MediaExtractor.SEEK_TO_PREVIOUS_SYNC);
+                    long starttime = System.currentTimeMillis();
+
+                    long presentationTimeUs = extractor.getSampleTime();
+                    while(presentationTimeUs < pos && System.currentTimeMillis() < starttime + 3000) {
+                        extractor.advance();
+                        presentationTimeUs = extractor.getSampleTime();
+                    }
+                    //extractor.
+/*
+I/StreamPlayer: seek to 7960 = 274506666*0.029/1000.0f
+E/FileSource: seek to 12238042466020 failed
+E/FileSource: seek to 12238042458078 failed
+ */
+                }
+
+            }
+
             //Log.i(LOG_TAG, "loop ");
             noOutputCounter++;
             if (!sawInputEOS) {
@@ -325,7 +369,7 @@ public class StreamPlayer {
 
                     int sampleSize =
                             extractor.readSampleData(dstBuf, 0 /* offset */);
-
+                    //extractor.
                     long presentationTimeUs = 0;
 
                     if (sampleSize < 0) {
@@ -336,6 +380,10 @@ public class StreamPlayer {
                         presentationTimeUs = extractor.getSampleTime();
                     }
                     // can throw illegal state exception (???)
+
+                    //Progress
+                    float prog =  ((float)presentationTimeUs / duration);
+                    parent.progress(prog);
 
                     codec.queueInputBuffer(
                             inputBufIndex,
@@ -382,7 +430,9 @@ public class StreamPlayer {
 
             }
         }
-
+        if(doStop){
+            parent.setUseCallBack(false);
+        }
         this.mState = State.Stopped;
     }
     public void reset(){
@@ -434,24 +484,34 @@ public class StreamPlayer {
         public void CallBack() {
         }
     }
-    private class DecodeOperation extends AsyncTask<Void, Void, Void> {
+    private class DecodeOperation extends AsyncTask<Void, Float, Void> {
         private CallBackTask callbacktask;
+        private boolean useCallBack = true;
         @Override
         protected Void doInBackground(Void... values) {
             try {
-                StreamPlayer.this.decodeLoop();
+                StreamPlayer.this.decodeLoop(this);
             } catch (IOException e) {
                 //TODO catch IOException at decode
             }
             finished=true;
             return null;
         }
+        public void progress(float prg){
+            onProgressUpdate(prg);
+        }
         @Override
         protected void onPostExecute(Void result)  {
             super.onPostExecute(null);
-
-            callbacktask.CallBack();
-
+            if(useCallBack) {
+                callbacktask.CallBack();
+            }
+        }
+        public boolean getUseCallBack(){
+            return useCallBack;
+        }
+        public void setUseCallBack(boolean useCallBack){
+            this.useCallBack = useCallBack;
         }
         public void setOnCallBack(CallBackTask _cbj) {
             callbacktask = _cbj;
@@ -461,7 +521,9 @@ public class StreamPlayer {
         }
 
         @Override
-        protected void onProgressUpdate(Void... values) {
+        protected void onProgressUpdate(Float... values) {
+            StreamPlayer.this.msc.onProgress(values[0]);
+
         }
     }
     public native void cfftinit(int size);

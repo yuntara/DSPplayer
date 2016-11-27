@@ -8,6 +8,7 @@ import android.support.v4.content.PermissionChecker;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -37,7 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private MusicService musicSrv;
     private Intent playIntent;
     private boolean musicBound=false;
-
+    private SeekBar seek ;
+    private boolean seeking = false;
     private int REQUEST_CODE_STORAGE_PERMISSION = 0x01;
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -60,11 +62,29 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
 
     }
+
+    public void onPrevClicked(View view){
+        musicSrv.prev();
+    }
+    public void onNextClicked(View view) {
+        musicSrv.next();
+    }
+    public void onPauseClicked(View view){
+        musicSrv.pause();
+    }
+    public void onPlayClicked(View view){
+        musicSrv.play();
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.main, menu);
         return true;
+    }
+    public void setPlayingPosition(float prog){
+        if(!seeking) {
+            seek.setProgress((int) (prog * 1000));
+        }
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +94,28 @@ public class MainActivity extends AppCompatActivity {
         // Example of a call to a native method
         tv = (TextView) findViewById(R.id.sample_text);
         tv.setText(stringFromJNI());
+        seek = (SeekBar) findViewById(R.id.seekBar);
+
+        seek.setOnSeekBarChangeListener(
+                new SeekBar.OnSeekBarChangeListener() {
+                    public void onProgressChanged(SeekBar seekBar,
+                                                  int progress, boolean fromUser) {
+                        // ツマミをドラッグしたときに呼ばれる
+                        //tv0.setText("設定値:"+sb0.getProgress());
+                    }
+
+                    public void onStartTrackingTouch(SeekBar seekBar) {
+                        // ツマミに触れたときに呼ばれる
+                        seeking = true;
+                    }
+
+                    public void onStopTrackingTouch(SeekBar seekBar) {
+                        // ツマミを離したときに呼ばれる
+                        musicSrv.setPosition( (seekBar.getProgress())/1000.0f);
+                        seeking = false;
+                    }
+                }
+        );
 
         songView = (ListView)findViewById(R.id.song_list);
         songList = new ArrayList<Song>();

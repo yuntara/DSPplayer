@@ -47,8 +47,30 @@ public class MusicService extends Service {
         playSong();
 
     }
+    public void play(){
+        playSong();
+    }
+    public void pause(){
+        streamPlayer.pause();
+    }
+    public void next(){
+        playNext();
+    }
+    public void prev(){
+        songPosn--;
+        if(songPosn<0){
+            songPosn =songs.size()-1;
+        }
+        playSong();
+    }
+    public void setPosition(float position){
+        streamPlayer.setPosition(position);
+    }
     public void OnPlayEnd(){
         playNext();
+    }
+    public void onProgress(float prog){
+        activity.setPlayingPosition(prog);
     }
     public void playSong(){
         if(activity != null){

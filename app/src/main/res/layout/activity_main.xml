@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
@@ -9,14 +10,18 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context="net.yuntara.dspplayer.MainActivity">
+    tools:context="net.yuntara.dspplayer.MainActivity"
+    >
 
     <LinearLayout
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentStart="true">
+        android:layout_alignParentStart="true"
+        android:weightSum="1"
+        
+        >
 
         <TextView
             android:id="@+id/sample_text"
@@ -27,8 +32,68 @@
         <ListView
             android:id="@+id/song_list"
             android:layout_width="fill_parent"
-            android:layout_height="wrap_content" >
+            android:layout_height="381dp"
+            android:layout_weight="0.38">
         </ListView>
 
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="47dp"
+            android:layout_weight="1.93">
+
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:srcCompat="@android:drawable/ic_media_next"
+                android:id="@+id/nextButton"
+                android:layout_row="0"
+                android:layout_column="3"
+                android:onClick="onNextClicked"
+                />
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:srcCompat="@android:drawable/ic_media_play"
+                android:id="@+id/playButton"
+                android:layout_row="0"
+                android:layout_column="2"
+                android:onClick="onPlayClicked"
+                />
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:srcCompat="@android:drawable/ic_media_pause"
+                android:id="@+id/pauseButton"
+                android:layout_row="0"
+                android:layout_column="1"
+                android:onClick="onPauseClicked"
+                />
+
+            <ImageButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:srcCompat="@android:drawable/ic_media_previous"
+                android:id="@+id/prevButton"
+                android:layout_row="0"
+                android:layout_column="0"
+                android:onClick="onPrevClicked" />
+
+            <SeekBar
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/seekBar"
+                android:max="1000"
+                android:progress="0"
+                android:layout_row="1"
+                android:layout_column="0"
+                android:layout_columnSpan="4"
+                />
+
+        </GridLayout>
+
     </LinearLayout>
+
 </RelativeLayout>
