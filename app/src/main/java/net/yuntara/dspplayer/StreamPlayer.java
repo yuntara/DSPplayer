@@ -106,7 +106,7 @@ public class StreamPlayer {
         x = new float[SIZEX*2];
         y = new float[SIZEX*2];
 
-        final int id = context.getResources().getIdentifier("out", "raw", context.getPackageName());
+        final int id = context.getResources().getIdentifier("outtwo", "raw", context.getPackageName());
         if (id == 0) {    //エラーにはならない
             return;
         }
