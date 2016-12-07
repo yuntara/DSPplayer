@@ -39,6 +39,9 @@ public class MusicService extends Service {
         }
         playSong();
     }
+    public void setFilter(Context context,String filname) {
+        streamPlayer.setFilter(context,filname);
+    }
     public void Shuffle(){
 
         //streamPlayer.stop();

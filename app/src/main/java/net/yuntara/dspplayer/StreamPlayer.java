@@ -48,7 +48,7 @@ public class StreamPlayer {
     private MusicService msc;
     private float datachunk[];
     private float x[],y[];
-
+    private String filterName = "outthree";
     private short before_dataL[],
             before_dataR[];
     private short audio_dataL[],
@@ -68,6 +68,12 @@ public class StreamPlayer {
         songContext = context;
         songUri = uri;
 
+    }
+    public void setFilter(Context context,String filname){
+        paused=true;
+        filterName=filname;
+        loadFilter(context);
+        paused=false;
     }
     public StreamPlayer(MusicService m){
         //native_lib initialize func
@@ -106,7 +112,7 @@ public class StreamPlayer {
         x = new float[SIZEX*2];
         y = new float[SIZEX*2];
 
-        final int id = context.getResources().getIdentifier("outtwo", "raw", context.getPackageName());
+        final int id = context.getResources().getIdentifier(filterName, "raw", context.getPackageName());
         if (id == 0) {    //エラーにはならない
             return;
         }

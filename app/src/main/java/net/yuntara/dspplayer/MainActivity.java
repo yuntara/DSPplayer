@@ -1,5 +1,7 @@
 package net.yuntara.dspplayer;
 
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
@@ -41,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private SeekBar seek ;
     private boolean seeking = false;
     private int REQUEST_CODE_STORAGE_PERMISSION = 0x01;
+    SharedPreferences sharedPref;
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -57,6 +60,9 @@ public class MainActivity extends AppCompatActivity {
                 stopService(playIntent);
                 musicSrv=null;
                 System.exit(0);
+                break;
+            case R.id.action_fil:
+                showSetting();
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -86,11 +92,18 @@ public class MainActivity extends AppCompatActivity {
             seek.setProgress((int) (prog * 1000));
         }
     }
+    public void showSetting(){
+        // インテントの生成
+        Intent intent = new Intent(this, Main2Activity.class);;
+
+// SubActivity の起動
+        startActivityForResult(intent,2480);
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
         // Example of a call to a native method
         tv = (TextView) findViewById(R.id.sample_text);
         tv.setText(stringFromJNI());
@@ -128,6 +141,25 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            //SecondActivityから戻ってきた場合
+            case (2480):
+                if (resultCode == 2481) {
+                    //OKボタンを押して戻ってきたときの処理
+                    String filfile = data.getStringExtra("FILTERNAME");
+                    musicSrv.setFilter(MainActivity.this,filfile);
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    editor.putString( "filter", filfile);
+                    editor.commit();
+                    tv.setText(filfile);
+                }
+                break;
+            default:
+                break;
+        }
+    }
     private void refreshSongView(){
         SongAdapter adapter = (SongAdapter)songView.getAdapter();
         adapter.refreshList(songList);
@@ -155,7 +187,10 @@ public class MainActivity extends AppCompatActivity {
             musicSrv = binder.getService();
             //pass list
             musicSrv.setList(songList);
-            musicSrv.loadFilter(MainActivity.this);
+            String filfile = sharedPref.getString("filter","outthree");
+            tv.setText(filfile);
+            musicSrv.setFilter(MainActivity.this,filfile);
+
             musicSrv.setActivity(MainActivity.this);
             musicBound = true;
 
