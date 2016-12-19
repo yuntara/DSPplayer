@@ -22,6 +22,7 @@ public class Main2Activity extends AppCompatActivity {
         filList.add("out");
         filList.add("outtwo");
         filList.add("outthree");
+        filList.add("outfour");
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,R.layout.rowtext, filList);
         filview.setAdapter(adapter);
         intent = new Intent();
