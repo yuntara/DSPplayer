@@ -242,6 +242,7 @@ class StreamPlayer(private val msc: MusicService) {
         bufIndexCheck = 0
 
         lastInputBufIndex = -1
+
         val dcd = DecodeOperation()
         dcd.setOnCallBack(object : CallBackTask() {
 
@@ -452,9 +453,9 @@ E/FileSource: seek to 12238042458078 failed
         relaxResources(false)
     }
 
-    private fun relaxResources(release: Boolean?) {
+    private fun relaxResources(release: Boolean) {
         if (codec != null) {
-            if (release!!) {
+            if (release) {
                 codec!!.stop()
                 codec!!.release()
                 codec = null
@@ -507,10 +508,10 @@ E/FileSource: seek to 12238042458078 failed
             onProgressUpdate(prg)
         }
 
-        override fun onPostExecute(result: Void) {
-            super.onPostExecute(null)
+        override fun onPostExecute(result: Void?) {
+            super.onPostExecute(result)
             if (useCallBack) {
-                callbacktask!!.CallBack()
+                callbacktask?.CallBack()
             }
         }
 
