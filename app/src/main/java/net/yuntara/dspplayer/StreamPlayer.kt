@@ -42,7 +42,7 @@ class StreamPlayer(private val msc: MusicService) {
     protected var bufIndexCheck: Int = 0
     protected var lastInputBufIndex: Int = 0
     private var finished = true
-    private val SIZEX = 65536
+    private val SIZEX = 65536/2
     private var stopped = false
     private val mainContext: Context? = null
     private var datachunk: FloatArray? = null

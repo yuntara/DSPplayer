@@ -2,7 +2,7 @@
 #include <string>
 #include <math.h>
 
-#define SIZEX 65536
+#define SIZEX (65536/2)
 //#define  FLOAT float
 //#define JFLOAT jfloat
 

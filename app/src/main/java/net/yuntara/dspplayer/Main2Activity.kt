@@ -19,11 +19,11 @@ class Main2Activity : AppCompatActivity() {
         val filview = findViewById(R.id.filter_list) as ListView
         filList = ArrayList<String>()
         filList!!.add("out")
-        filList!!.add("outtwo")
-        filList!!.add("outthree")
-        filList!!.add("outfour")
-        filList!!.add("outfive")
-        filList!!.add("outsix")
+        //filList!!.add("outtwo")
+        //filList!!.add("outthree")
+        //filList!!.add("outfour")
+        //filList!!.add("outfive")
+        //filList!!.add("outsix")
         val adapter = ArrayAdapter(this, R.layout.rowtext, filList!!)
         filview.adapter = adapter
         intent = Intent()
