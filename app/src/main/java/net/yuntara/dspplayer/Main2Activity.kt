@@ -20,7 +20,7 @@ class Main2Activity : AppCompatActivity() {
         filList = ArrayList<String>()
         filList!!.add("out")
         //filList!!.add("outtwo")
-        //filList!!.add("outthree")
+        filList!!.add("outthree")
         //filList!!.add("outfour")
         //filList!!.add("outfive")
         //filList!!.add("outsix")
