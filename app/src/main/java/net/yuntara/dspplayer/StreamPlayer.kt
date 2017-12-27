@@ -142,6 +142,20 @@ class StreamPlayer(private val msc: MusicService) {
                 filL2_r[i] = ds.readDouble().toFloat()
                 filL2_i[i] = ds.readDouble().toFloat()
             }
+            /*
+            for (i in 0..SIZEX) {
+                filL1_r[i] = filR1_r[i]
+                filL1_i[i] = filR1_i[i]
+            }
+            */
+            /*
+            for (i in 0..SIZEX) {
+                filL1_r[i] = 0f //filR2_r[i]
+                filL1_i[i] = 0f //filR2_i[i]
+                filL2_r[i] = 0f //filR2_r[i]
+                filL2_i[i] = 0f //filR2_i[i]
+            }
+            */
             csetfil(filR1_r, filR1_i, filR2_r, filR2_i, filL1_r, filL1_i, filL2_r, filL2_i)
         } catch (e: IOException) {
 

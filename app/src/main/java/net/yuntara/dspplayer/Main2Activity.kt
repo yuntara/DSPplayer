@@ -24,6 +24,7 @@ class Main2Activity : AppCompatActivity() {
         filList!!.add("outfour")
         filList!!.add("outfive")
         filList!!.add("outsix")
+        filList!!.add("outseven")
         val adapter = ArrayAdapter(this, R.layout.rowtext, filList!!)
         filview.adapter = adapter
         intent = Intent()
