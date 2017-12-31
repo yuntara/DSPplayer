@@ -46,8 +46,8 @@ class StreamPlayer(private val msc: MusicService) {
     private var stopped = false
     private val mainContext: Context? = null
     private var datachunk: FloatArray? = null
-    private var x: FloatArray? = null
-    private var y: FloatArray? = null
+    private var x: DoubleArray? = null
+    private var y: DoubleArray? = null
     private var filterName = "outthree"
     private var before_dataL: ShortArray? = null
     private var before_dataR: ShortArray? = null
@@ -91,22 +91,22 @@ class StreamPlayer(private val msc: MusicService) {
 
     fun loadFilter(context: Context) {
         ///*
-        val filR1_r: FloatArray
-        val filR2_r: FloatArray
-        val filL1_r: FloatArray
-        val filL2_r: FloatArray
-        val filR1_i: FloatArray
-        val filR2_i: FloatArray
-        val filL1_i: FloatArray
-        val filL2_i: FloatArray
-        filR1_r = FloatArray(SIZEX + 1)
-        filR1_i = FloatArray(SIZEX + 1)
-        filR2_r = FloatArray(SIZEX + 1)
-        filR2_i = FloatArray(SIZEX + 1)
-        filL1_r = FloatArray(SIZEX + 1)
-        filL1_i = FloatArray(SIZEX + 1)
-        filL2_r = FloatArray(SIZEX + 1)
-        filL2_i = FloatArray(SIZEX + 1)
+        val filR1_r: DoubleArray
+        val filR2_r: DoubleArray
+        val filL1_r: DoubleArray
+        val filL2_r: DoubleArray
+        val filR1_i: DoubleArray
+        val filR2_i: DoubleArray
+        val filL1_i: DoubleArray
+        val filL2_i: DoubleArray
+        filR1_r = DoubleArray(SIZEX + 1)
+        filR1_i = DoubleArray(SIZEX + 1)
+        filR2_r = DoubleArray(SIZEX + 1)
+        filR2_i = DoubleArray(SIZEX + 1)
+        filL1_r = DoubleArray(SIZEX + 1)
+        filL1_i = DoubleArray(SIZEX + 1)
+        filL2_r = DoubleArray(SIZEX + 1)
+        filL2_i = DoubleArray(SIZEX + 1)
 
         before_dataL = ShortArray(SIZEX)
         before_dataR = ShortArray(SIZEX)
@@ -115,8 +115,8 @@ class StreamPlayer(private val msc: MusicService) {
         audio_dataR = ShortArray(SIZEX)
 
         datachunk = FloatArray(SIZEX * 2)
-        x = FloatArray(SIZEX * 2)
-        y = FloatArray(SIZEX * 2)
+        x = DoubleArray(SIZEX * 2)
+        y = DoubleArray(SIZEX * 2)
 
         val id = context.resources.getIdentifier(filterName, "raw", context.packageName)
         if (id == 0) {    //エラーにはならない
@@ -127,27 +127,36 @@ class StreamPlayer(private val msc: MusicService) {
         try {
 
             for (i in 0..SIZEX) {
-                filR1_r[i] = ds.readDouble().toFloat()
-                filR1_i[i] = ds.readDouble().toFloat()
+                filR1_r[i] = ds.readDouble()//.toFloat()
+                filR1_i[i] = ds.readDouble()//.toFloat()
             }
             for (i in 0..SIZEX) {
-                filR2_r[i] = ds.readDouble().toFloat()
-                filR2_i[i] = ds.readDouble().toFloat()
+                filR2_r[i] = ds.readDouble()//.toFloat()
+                filR2_i[i] = ds.readDouble()//.toFloat()
             }
             for (i in 0..SIZEX) {
-                filL1_r[i] = ds.readDouble().toFloat()
-                filL1_i[i] = ds.readDouble().toFloat()
+                filL1_r[i] = ds.readDouble()//.toFloat()
+                filL1_i[i] = ds.readDouble()//.toFloat()
             }
             for (i in 0..SIZEX) {
-                filL2_r[i] = ds.readDouble().toFloat()
-                filL2_i[i] = ds.readDouble().toFloat()
+                filL2_r[i] = ds.readDouble()//.toFloat()
+                filL2_i[i] = ds.readDouble()//.toFloat()
             }
-            /*
+
             for (i in 0..SIZEX) {
                 filL1_r[i] = filR1_r[i]
                 filL1_i[i] = filR1_i[i]
+                filL2_r[i] =  filR2_r[i]
+                filL2_i[i] = filR2_i[i]
+                //filR1_r[i] = 0.00;
+                //filR1_i[i] = 0.00;
+                //filR2_r[i] = 0.00;
+                //filR2_i[i] = 0.00;
+
+
+
             }
-            */
+            //*/
             /*
             for (i in 0..SIZEX) {
                 filL1_r[i] = 0f //filR2_r[i]
@@ -159,14 +168,14 @@ class StreamPlayer(private val msc: MusicService) {
             csetfil(filR1_r, filR1_i, filR2_r, filR2_i, filL1_r, filL1_i, filL2_r, filL2_i)
         } catch (e: IOException) {
 
-            Arrays.fill(filR1_r, 0f)
-            Arrays.fill(filR1_i, 0f)
-            Arrays.fill(filL1_r, 0f)
-            Arrays.fill(filL1_i, 0f)
-            Arrays.fill(filR2_r, 0f)
-            Arrays.fill(filR2_i, 0f)
-            Arrays.fill(filL2_r, 0f)
-            Arrays.fill(filL2_i, 0f)
+            Arrays.fill(filR1_r, 0.0)
+            Arrays.fill(filR1_i, 0.0)
+            Arrays.fill(filL1_r, 0.0)
+            Arrays.fill(filL1_i, 0.0)
+            Arrays.fill(filR2_r, 0.0)
+            Arrays.fill(filR2_i, 0.0)
+            Arrays.fill(filL2_r, 0.0)
+            Arrays.fill(filL2_i, 0.0)
             csetfil(filR1_r, filR1_i, filR2_r, filR2_i, filL1_r, filL1_i, filL2_r, filL2_i)
         }
 
@@ -203,11 +212,11 @@ class StreamPlayer(private val msc: MusicService) {
         for (j in 0..SIZEX * 2 - 1) {
             //前半ブロックは前回のデータ
             if (j < SIZEX) {
-                x!![j] = before_dataL!![j].toFloat()
-                y!![j] = before_dataR!![j].toFloat()
+                x!![j] = before_dataL!![j].toDouble()
+                y!![j] = before_dataR!![j].toDouble()
             } else {
-                x!![j] = audio_dataL!![j - SIZEX].toFloat()//
-                y!![j] = audio_dataR!![j - SIZEX].toFloat()
+                x!![j] = audio_dataL!![j - SIZEX].toDouble()//
+                y!![j] = audio_dataR!![j - SIZEX].toDouble()
             }//後半ブロックが今回のデータ
         }
 
@@ -220,8 +229,8 @@ class StreamPlayer(private val msc: MusicService) {
 
         //直線畳みこみ（ifftの前半部分）しか使わない
         for (j in 0..SIZEX - 1) {
-            datachunk!![2 * j] = x!![j]
-            datachunk!![2 * j + 1] = y!![j]
+            datachunk!![2 * j] = x!![j].toFloat()
+            datachunk!![2 * j + 1] = y!![j].toFloat()
         }
 
         /*
@@ -544,11 +553,11 @@ E/FileSource: seek to 12238042458078 failed
     external fun cfftinit(size: Int)
     //public native void cfft(float x[],float y[],boolean isReverse);
     //public native void cifft(float x[],float y[]);
-    external fun csetfil(r1r: FloatArray, r1i: FloatArray, r2r: FloatArray, r2i: FloatArray,
-                         l1r: FloatArray, l1i: FloatArray, l2r: FloatArray, l2i: FloatArray
+    external fun csetfil(r1r: DoubleArray, r1i: DoubleArray, r2r: DoubleArray, r2i: DoubleArray,
+                         l1r: DoubleArray, l1i: DoubleArray, l2r: DoubleArray, l2i: DoubleArray
     )
 
-    external fun ccomboluteRL(x: FloatArray, y: FloatArray)
+    external fun ccomboluteRL(x: DoubleArray, y: DoubleArray)
 
     companion object {
         //public native void cadjust(float x[],float y[]);
